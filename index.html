@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bangladesh Tax Calculator</title>
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background: #0f172a;
+        color: #f8fafc;
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        min-height: 100vh;
+        padding: 30px;
+      }
+      .calculator {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 30px;
+        border-radius: 16px;
+        width: 100%;
+        max-width: 600px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+      }
+      h1 {
+        font-size: 24px;
+        margin-top: 0;
+        margin-bottom: 20px;
+        text-align: center;
+        color: #e0e7ff;
+      }
+      label {
+        display: block;
+        margin: 12px 0 6px;
+        font-weight: 500;
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.05);
+        color: white;
+        font-size: 16px;
+      }
+      button {
+        width: 100%;
+        margin-top: 20px;
+        padding: 12px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        background: linear-gradient(90deg, #7c3aed, #06b6d4);
+        color: white;
+        transition: all 0.2s;
+      }
+      button:hover {
+        transform: scale(1.02);
+      }
+      .summary {
+        margin-top: 25px;
+        background: rgba(255, 255, 255, 0.06);
+        padding: 20px;
+        border-radius: 12px;
+      }
+      .stat {
+        display: flex;
+        justify-content: space-between;
+        margin: 6px 0;
+      }
+      .big {
+        font-weight: 700;
+        font-size: 18px;
+      }
+      small {
+        color: #94a3b8;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="calculator">
+      <h1>Bangladesh Tax Calculator (FY 2024-25)</h1>
+
+      <label>Annual Gross Salary (BDT)</label>
+      <input id="gross" type="number" placeholder="Enter gross salary" />
+
+      <label>Investment Amount (BDT)</label>
+      <input id="investment" type="number" placeholder="Enter investment" />
+
+      <label>Location</label>
+      <select id="location">
+        <option value="dhaka">Dhaka / Chattogram CC (Min tax ৳5,000)</option>
+        <option value="othercc">Other City Corporation (Min tax ৳4,000)</option>
+        <option value="outside">
+          Outside City Corporation (Min tax ৳3,000)
+        </option>
+      </select>
+
+      <button id="calculate">Calculate Tax</button>
+
+      <div class="summary" id="summary" style="display: none">
+        <div class="stat">
+          <span>Gross Salary</span><span id="grossOut"></span>
+        </div>
+        <div class="stat">
+          <span>Standard Deduction (1/3, max 450k)</span
+          ><span id="deduction"></span>
+        </div>
+        <div class="stat">
+          <span>Taxable Income</span><span id="taxable"></span>
+        </div>
+        <div class="stat">
+          <span>Progressive Tax Before Rebate</span><span id="taxBefore"></span>
+        </div>
+        <div class="stat">
+          <span>Investment Rebate</span><span id="rebate"></span>
+        </div>
+        <div class="stat">
+          <span>Tax After Rebate</span><span id="afterRebate"></span>
+        </div>
+        <div class="stat">
+          <span>Minimum Tax Applied</span><span id="minTax"></span>
+        </div>
+        <hr />
+        <div class="stat big">
+          <span>Final Tax Payable</span><span id="finalTax"></span>
+        </div>
+        <div class="stat">
+          <small>Net Annual (after tax)</small><span id="netAnnual"></span>
+        </div>
+        <div class="stat">
+          <small>Net Monthly (after tax)</small><span id="netMonthly"></span>
+        </div>
+        <div class="stat">
+          <small>Monthly Tax</small><span id="monthlyTax"></span>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        const fmt = (n) =>
+          "৳" + Number(n).toLocaleString("en-BD", { maximumFractionDigits: 0 });
+
+        function calcProgressiveTax(taxable) {
+          let tax = 0;
+          let remaining = taxable;
+
+          // Latest slabs
+          const slabs = [
+            { limit: 375000, rate: 0 }, // Up to 375k → 0%
+            { limit: 300000, rate: 0.1 }, // Next 300k → 10%
+            { limit: 400000, rate: 0.15 }, // Next 400k → 15%
+            { limit: 500000, rate: 0.2 }, // Next 2,000,000 → 25%
+            { limit: 2000000, rate: 0.25 },
+            { limit: Infinity, rate: 0.3 }, // Above 3,575,000 → 30%
+          ];
+
+          for (const slab of slabs) {
+            if (remaining <= 0) break;
+            const amount = Math.min(remaining, slab.limit);
+            tax += amount * slab.rate;
+            remaining -= amount;
+          }
+          return tax;
+          console.log(remaining, "remaining ");
+        }
+
+        document.getElementById("calculate").addEventListener("click", () => {
+          const gross = Number(document.getElementById("gross").value) || 0;
+          const invest =
+            Number(document.getElementById("investment").value) || 0;
+          const location = document.getElementById("location").value;
+
+          if (!gross) {
+            alert("Enter your gross salary.");
+            return;
+          }
+
+          const deduction = Math.min(gross / 3, 450000);
+          const taxable = Math.max(0, gross - deduction);
+
+          const taxBefore = calcProgressiveTax(taxable);
+          console.log(taxable);
+          const willBeTaxed = taxable - 375000;
+          const eligible = Math.min(invest, taxable * 0.2, 150000);
+          const rebate = eligible * 0.15;
+          const afterRebate = Math.max(0, taxBefore - rebate);
+
+          let minTax = 3000;
+          if (location === "dhaka") minTax = 5000;
+          else if (location === "othercc") minTax = 4000;
+
+          const finalTax = Math.max(afterRebate, minTax);
+
+          const netAnnual = gross - finalTax;
+          const netMonthly = netAnnual / 12;
+          const monthlyTax = finalTax / 12;
+
+          document.getElementById("summary").style.display = "block";
+          document.getElementById("grossOut").textContent = fmt(gross);
+          document.getElementById("deduction").textContent =
+            "-" + fmt(deduction);
+          document.getElementById("taxable").textContent = fmt(taxable);
+          document.getElementById("taxBefore").textContent = fmt(taxBefore);
+          document.getElementById("rebate").textContent = "-" + fmt(rebate);
+          document.getElementById("afterRebate").textContent = fmt(afterRebate);
+          document.getElementById("minTax").textContent = fmt(minTax);
+          document.getElementById("finalTax").textContent = fmt(finalTax);
+          document.getElementById("netAnnual").textContent = fmt(netAnnual);
+          document.getElementById("netMonthly").textContent = fmt(
+            netMonthly.toFixed(2)
+          );
+          document.getElementById("monthlyTax").textContent = fmt(
+            monthlyTax.toFixed(2)
+          );
+
+          localStorage.setItem(
+            "taxData",
+            JSON.stringify({ gross, invest, location })
+          );
+        });
+
+        const saved = localStorage.getItem("taxData");
+        if (saved) {
+          const { gross, invest, location } = JSON.parse(saved);
+          document.getElementById("gross").value = gross;
+          document.getElementById("investment").value = invest;
+          document.getElementById("location").value = location;
+        }
+      })();
+    </script>
+  </body>
+</html>
