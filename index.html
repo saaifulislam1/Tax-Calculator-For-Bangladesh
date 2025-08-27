@@ -298,21 +298,21 @@
           });
 
           // Save state
-          localStorage.setItem(
-            "taxData",
-            JSON.stringify({ gross, invest, location, isNew })
-          );
+          // localStorage.setItem(
+          //   "taxData",
+          //   JSON.stringify({ gross, invest, location, isNew })
+          // );
         });
 
         // Restore last input
-        const saved = localStorage.getItem("taxData");
-        if (saved) {
-          const { gross, invest, location, isNew } = JSON.parse(saved);
-          document.getElementById("gross").value = gross;
-          document.getElementById("investment").value = invest;
-          document.getElementById("location").value = location;
-          document.getElementById("newTaxpayer").checked = isNew || false;
-        }
+        // const saved = localStorage.getItem("taxData");
+        // if (saved) {
+        //   const { gross, invest, location, isNew } = JSON.parse(saved);
+        //   document.getElementById("gross").value = gross;
+        //   document.getElementById("investment").value = invest;
+        //   document.getElementById("location").value = location;
+        //   document.getElementById("newTaxpayer").checked = isNew || false;
+        // }
       })();
     </script>
   </body>
