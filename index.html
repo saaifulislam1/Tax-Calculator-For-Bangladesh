@@ -45,6 +45,16 @@
         color: white;
         font-size: 16px;
       }
+      .checkbox-label {
+        display: flex;
+        align-items: center;
+        margin-top: 10px;
+        cursor: pointer;
+      }
+      .checkbox-label input {
+        margin-right: 10px;
+        width: auto;
+      }
       button {
         width: 100%;
         margin-top: 20px;
@@ -100,6 +110,12 @@
         </option>
       </select>
 
+      <!-- ✅ New Taxpayer Checkbox -->
+      <label class="checkbox-label">
+        <input type="checkbox" id="newTaxpayer" />
+        I am a new taxpayer (Min tax ৳1,000)
+      </label>
+
       <button id="calculate">Calculate Tax</button>
 
       <div class="summary" id="summary" style="display: none">
@@ -150,14 +166,13 @@
           let tax = 0;
           let remaining = taxable;
 
-          // Latest slabs
           const slabs = [
-            { limit: 375000, rate: 0 }, // Up to 375k → 0%
-            { limit: 300000, rate: 0.1 }, // Next 300k → 10%
-            { limit: 400000, rate: 0.15 }, // Next 400k → 15%
-            { limit: 500000, rate: 0.2 }, // Next 2,000,000 → 25%
+            { limit: 375000, rate: 0 },
+            { limit: 300000, rate: 0.1 },
+            { limit: 400000, rate: 0.15 },
+            { limit: 500000, rate: 0.2 },
             { limit: 2000000, rate: 0.25 },
-            { limit: Infinity, rate: 0.3 }, // Above 3,575,000 → 30%
+            { limit: Infinity, rate: 0.3 },
           ];
 
           for (const slab of slabs) {
@@ -167,7 +182,6 @@
             remaining -= amount;
           }
           return tax;
-          console.log(remaining, "remaining ");
         }
 
         document.getElementById("calculate").addEventListener("click", () => {
@@ -175,6 +189,7 @@
           const invest =
             Number(document.getElementById("investment").value) || 0;
           const location = document.getElementById("location").value;
+          const isNew = document.getElementById("newTaxpayer").checked;
 
           if (!gross) {
             alert("Enter your gross salary.");
@@ -185,8 +200,6 @@
           const taxable = Math.max(0, gross - deduction);
 
           const taxBefore = calcProgressiveTax(taxable);
-          console.log(taxable);
-          const willBeTaxed = taxable - 375000;
           const eligible = Math.min(invest, taxable * 0.2, 150000);
           const rebate = eligible * 0.15;
           const afterRebate = Math.max(0, taxBefore - rebate);
@@ -194,6 +207,11 @@
           let minTax = 3000;
           if (location === "dhaka") minTax = 5000;
           else if (location === "othercc") minTax = 4000;
+
+          // ✅ Override if new taxpayer
+          if (isNew) {
+            minTax = 1000;
+          }
 
           const finalTax = Math.max(afterRebate, minTax);
 
@@ -221,16 +239,17 @@
 
           localStorage.setItem(
             "taxData",
-            JSON.stringify({ gross, invest, location })
+            JSON.stringify({ gross, invest, location, isNew })
           );
         });
 
         const saved = localStorage.getItem("taxData");
         if (saved) {
-          const { gross, invest, location } = JSON.parse(saved);
+          const { gross, invest, location, isNew } = JSON.parse(saved);
           document.getElementById("gross").value = gross;
           document.getElementById("investment").value = invest;
           document.getElementById("location").value = location;
+          document.getElementById("newTaxpayer").checked = isNew || false;
         }
       })();
     </script>
