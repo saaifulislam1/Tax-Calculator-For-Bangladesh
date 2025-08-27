@@ -20,11 +20,11 @@
         padding: 30px;
         border-radius: 16px;
         width: 100%;
-        max-width: 600px;
+        max-width: 700px;
         box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
       }
       h1 {
-        font-size: 24px;
+        font-size: 26px;
         margin-top: 0;
         margin-bottom: 20px;
         text-align: center;
@@ -89,6 +89,44 @@
       small {
         color: #94a3b8;
       }
+      .slabs {
+        margin-top: 15px;
+      }
+      .slab {
+        margin: 5px 0;
+        padding: 8px 10px;
+        border-radius: 8px;
+        font-size: 14px;
+        display: flex;
+        justify-content: space-between;
+      }
+      .slab span {
+        font-weight: 600;
+      }
+      .slab.rate0 {
+        background: rgba(34, 197, 94, 0.2);
+        border: 1px solid rgba(34, 197, 94, 0.5);
+      }
+      .slab.rate10 {
+        background: rgba(59, 130, 246, 0.2);
+        border: 1px solid rgba(59, 130, 246, 0.5);
+      }
+      .slab.rate15 {
+        background: rgba(139, 92, 246, 0.2);
+        border: 1px solid rgba(139, 92, 246, 0.5);
+      }
+      .slab.rate20 {
+        background: rgba(249, 115, 22, 0.2);
+        border: 1px solid rgba(249, 115, 22, 0.5);
+      }
+      .slab.rate25 {
+        background: rgba(236, 72, 153, 0.2);
+        border: 1px solid rgba(236, 72, 153, 0.5);
+      }
+      .slab.rate30 {
+        background: rgba(220, 38, 38, 0.2);
+        border: 1px solid rgba(220, 38, 38, 0.5);
+      }
     </style>
   </head>
   <body>
@@ -110,7 +148,6 @@
         </option>
       </select>
 
-      <!-- ✅ New Taxpayer Checkbox -->
       <label class="checkbox-label">
         <input type="checkbox" id="newTaxpayer" />
         I am a new taxpayer (Min tax ৳1,000)
@@ -119,8 +156,12 @@
       <button id="calculate">Calculate Tax</button>
 
       <div class="summary" id="summary" style="display: none">
+        <h2 style="text-align: center; margin-bottom: 15px">
+          📊 Tax Breakdown
+        </h2>
         <div class="stat">
-          <span>Gross Salary</span><span id="grossOut"></span>
+          <span>Gross Salary (incl. bonus/allowances)</span
+          ><span id="grossOut"></span>
         </div>
         <div class="stat">
           <span>Standard Deduction (1/3, max 450k)</span
@@ -132,6 +173,9 @@
         <div class="stat">
           <span>Progressive Tax Before Rebate</span><span id="taxBefore"></span>
         </div>
+
+        <div class="slabs" id="slabs"></div>
+
         <div class="stat">
           <span>Investment Rebate</span><span id="rebate"></span>
         </div>
@@ -143,7 +187,7 @@
         </div>
         <hr />
         <div class="stat big">
-          <span>Final Tax Payable</span><span id="finalTax"></span>
+          <span>✅ Final Tax Payable</span><span id="finalTax"></span>
         </div>
         <div class="stat">
           <small>Net Annual (after tax)</small><span id="netAnnual"></span>
@@ -165,6 +209,7 @@
         function calcProgressiveTax(taxable) {
           let tax = 0;
           let remaining = taxable;
+          const breakdown = [];
 
           const slabs = [
             { limit: 375000, rate: 0 },
@@ -178,10 +223,16 @@
           for (const slab of slabs) {
             if (remaining <= 0) break;
             const amount = Math.min(remaining, slab.limit);
-            tax += amount * slab.rate;
+            const slabTax = amount * slab.rate;
+            tax += slabTax;
+            breakdown.push({
+              rate: slab.rate * 100,
+              amount,
+              tax: slabTax,
+            });
             remaining -= amount;
           }
-          return tax;
+          return { tax, breakdown };
         }
 
         document.getElementById("calculate").addEventListener("click", () => {
@@ -199,7 +250,8 @@
           const deduction = Math.min(gross / 3, 450000);
           const taxable = Math.max(0, gross - deduction);
 
-          const taxBefore = calcProgressiveTax(taxable);
+          const { tax: taxBefore, breakdown } = calcProgressiveTax(taxable);
+
           const eligible = Math.min(invest, taxable * 0.2, 150000);
           const rebate = eligible * 0.15;
           const afterRebate = Math.max(0, taxBefore - rebate);
@@ -207,11 +259,7 @@
           let minTax = 3000;
           if (location === "dhaka") minTax = 5000;
           else if (location === "othercc") minTax = 4000;
-
-          // ✅ Override if new taxpayer
-          if (isNew) {
-            minTax = 1000;
-          }
+          if (isNew) minTax = 1000;
 
           const finalTax = Math.max(afterRebate, minTax);
 
@@ -219,6 +267,7 @@
           const netMonthly = netAnnual / 12;
           const monthlyTax = finalTax / 12;
 
+          // Update UI
           document.getElementById("summary").style.display = "block";
           document.getElementById("grossOut").textContent = fmt(gross);
           document.getElementById("deduction").textContent =
@@ -237,12 +286,25 @@
             monthlyTax.toFixed(2)
           );
 
+          // Slab breakdown
+          const slabsDiv = document.getElementById("slabs");
+          slabsDiv.innerHTML = "";
+          breakdown.forEach((b) => {
+            const div = document.createElement("div");
+            div.className = `slab rate${b.rate}`;
+            div.innerHTML = `<span>${b.rate}% slab</span> 
+                             <span>${fmt(b.amount)} → Tax ${fmt(b.tax)}</span>`;
+            slabsDiv.appendChild(div);
+          });
+
+          // Save state
           localStorage.setItem(
             "taxData",
             JSON.stringify({ gross, invest, location, isNew })
           );
         });
 
+        // Restore last input
         const saved = localStorage.getItem("taxData");
         if (saved) {
           const { gross, invest, location, isNew } = JSON.parse(saved);
